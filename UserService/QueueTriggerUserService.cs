@@ -91,7 +91,8 @@ namespace UserService
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 })
             };
-            await QueueMessageAsync("api-router", message, log);
+            MessageHelper.AddContentHeader(message, "Users");
+            await MessageHelper.QueueMessageAsync("api-router", message, log);
         }
 
         private async Task InsertUserAsync(Message receivedMessage, Users user, ILogger log)
@@ -119,25 +120,8 @@ namespace UserService
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 })
             };
-            await QueueMessageAsync("api-router", message, log);
+            MessageHelper.AddContentHeader(message, "User");
+            await MessageHelper.QueueMessageAsync("api-router", message, log);
         }
-
-        private async Task QueueMessageAsync(string queueName, Message message, ILogger log)
-        {
-            // Get a reference to the queue
-            var str = Environment.GetEnvironmentVariable("rasputinstorageaccount_STORAGE");
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(str);
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            CloudQueue queue = queueClient.GetQueueReference(queueName);
-
-            // Create a new message and add it to the queue
-            CloudQueueMessage queueMessage = new CloudQueueMessage(JsonSerializer.Serialize(message, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                })
-                );
-            await queue.AddMessageAsync(queueMessage);
-        }
-
     }
 }
