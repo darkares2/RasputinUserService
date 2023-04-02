@@ -2,10 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Queue;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +11,7 @@ namespace UserService
     public class QueueTriggerUserService
     {
         [FunctionName("QueueTriggerUserService")]
-        public async Task RunAsync([QueueTrigger("ms-users", Connection = "rasputinstorageaccount_STORAGE")]string myQueueItem, ILogger log)
+        public async Task RunAsync([ServiceBusTrigger("ms-users", Connection = "rasputinServicebus")]string myQueueItem, ILogger log)
         {
             log.LogInformation($"C# Queue trigger function processed: {myQueueItem}");
             var message = JsonSerializer.Deserialize<Message>(myQueueItem, new JsonSerializerOptions
