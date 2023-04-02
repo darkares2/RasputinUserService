@@ -18,6 +18,7 @@ namespace UserService
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
+            await MessageHelper.SendLog(message);
             var cmd = JsonSerializer.Deserialize<CmdUser>(message.Body, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
