@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
@@ -19,19 +20,26 @@ namespace UserService
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
             await MessageHelper.SendLog(message);
-            var cmd = JsonSerializer.Deserialize<CmdUser>(message.Body, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-            var user = cmd.User;
-            if (cmd.Command == "create")
-            {
-                await InsertUserAsync(message, user, log);
-            } else if (cmd.Command == "list")
-            {
-                await ListUsersAsync(message, cmd.Parameter, log);
-            } else {
-                log.LogError($"Command {cmd.Command} not supported");
+            try {
+                var cmd = JsonSerializer.Deserialize<CmdUser>(message.Body, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                var user = cmd.User;
+                if (cmd.Command == "create")
+                {
+                    await InsertUserAsync(message, user, log);
+                } else if (cmd.Command == "list")
+                {
+                    await ListUsersAsync(message, cmd.Parameter, log);
+                } else {
+                    log.LogError($"Command {cmd.Command} not supported");
+                }
+            } catch(Exception ex) {
+                var current = message.Headers.FirstOrDefault(x => x.Name.Equals("current-queue-header"));
+                current.Fields["Name"] = $"Error (User): {ex.Message}";
+                current.Fields["Timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                await MessageHelper.SendLog(message);
             }
 
         }
