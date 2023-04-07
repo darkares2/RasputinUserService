@@ -47,6 +47,7 @@ namespace UserService
                 stopwatch.Stop();
                 await MessageHelper.SendLog(logMessage, receivedMessageTime, stopwatch.ElapsedMilliseconds);
             } catch(Exception ex) {
+                log.LogError("Procesing failed", ex);
                 var current = logMessage.Headers.FirstOrDefault(x => x.Name.Equals("current-queue-header"));
                 current.Fields["Name"] = current.Fields["Name"] + $"-Error (User): {ex.Message}";
                 stopwatch.Stop();
