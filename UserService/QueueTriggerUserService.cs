@@ -15,7 +15,7 @@ namespace UserService
         [FunctionName("QueueTriggerUserService")]
         public async Task RunAsync([ServiceBusTrigger("ms-users", Connection = "rasputinServicebus")]string myQueueItem, ILogger log)
         {
-            log.LogInformation($"C# Queue trigger function processed: {myQueueItem}");
+            log.LogInformation($"ms-users triggered: {myQueueItem}");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             DateTime receivedMessageTime = DateTime.UtcNow;
@@ -43,7 +43,6 @@ namespace UserService
             } catch(Exception ex) {
                 var current = message.Headers.FirstOrDefault(x => x.Name.Equals("current-queue-header"));
                 current.Fields["Name"] = current.Fields["Name"] + $"-Error (User): {ex.Message}";
-                current.Fields["Timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
                 stopwatch.Stop();
                 await MessageHelper.SendLog(message, receivedMessageTime, stopwatch.ElapsedMilliseconds);
             }
