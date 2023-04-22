@@ -148,13 +148,13 @@ namespace UserService
                 SqlCommand command = new SqlCommand(@"DECLARE @OutputTable TABLE (Id INT);
 
                     MERGE INTO Users AS target
-                    USING(VALUES(@Username, @Email, @Password, @CreatedAt)) AS source(Username, Email, Password, CreatedAt)
+                    USING(VALUES(@Username, @Email, @Password)) AS source(Username, Email, Password)
                     ON(target.Username = source.Username)
                     WHEN MATCHED THEN
-                        UPDATE SET Email = source.Email, Password = source.Password, CreatedAt = source.CreatedAt
+                        UPDATE SET Email = source.Email, Password = source.Password
                     WHEN NOT MATCHED THEN
-                        INSERT(Username, Email, Password, CreatedAt)
-                        VALUES(source.Username, source.Email, source.Password, source.CreatedAt)
+                        INSERT(Username, Email, Password)
+                        VALUES(source.Username, source.Email, source.Password)
                     OUTPUT inserted.Id INTO @OutputTable;
 
                 SELECT Id FROM @OutputTable; ", connection);
