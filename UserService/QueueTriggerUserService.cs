@@ -38,6 +38,9 @@ namespace UserService
                 if (cmd.Command == "create")
                 {
                     await InsertUserAsync(message, user, log);
+                } else if (cmd.Command == "delete")
+                {
+                    await DeleteUserAsync(message, user, log);
                 } else if (cmd.Command == "list")
                 {
                     await ListUsersAsync(message, cmd.Parameter, log);
@@ -54,6 +57,30 @@ namespace UserService
                 await MessageHelper.SendLog(logMessage, receivedMessageTime, stopwatch.ElapsedMilliseconds);
             }
 
+        }
+
+        private async Task DeleteUserAsync(Message receivedMessage, Users user, ILogger log)
+        {
+            var str = Environment.GetEnvironmentVariable("sqldb_connection");
+            string query = "DELETE FROM Users WHERE Id = @Id";
+            using (SqlConnection connection = new SqlConnection(str))
+            {
+                connection.Open();
+                using (var command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", user.Id);
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
+            var message = new Message
+            {
+                Headers = receivedMessage.Headers,
+                Body = JsonSerializer.Serialize(user, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                })
+            };
+            await MessageHelper.QueueMessageAsync("api-router", message, log);
         }
 
         private async Task ListUsersAsync(Message receivedMessage, string parameter, ILogger log)
@@ -118,7 +145,19 @@ namespace UserService
             var connectionString = Environment.GetEnvironmentVariable("sqldb_connection");
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                SqlCommand command = new SqlCommand("INSERT INTO users (username, email, password) VALUES (@Username, @Email, @Password); SELECT SCOPE_IDENTITY();", connection);
+                SqlCommand command = new SqlCommand(@"DECLARE @OutputTable TABLE (Id INT);
+
+                    MERGE INTO Users AS target
+                    USING(VALUES(@Username, @Email, @Password, @CreatedAt)) AS source(Username, Email, Password, CreatedAt)
+                    ON(target.Username = source.Username)
+                    WHEN MATCHED THEN
+                        UPDATE SET Email = source.Email, Password = source.Password, CreatedAt = source.CreatedAt
+                    WHEN NOT MATCHED THEN
+                        INSERT(Username, Email, Password, CreatedAt)
+                        VALUES(source.Username, source.Email, source.Password, source.CreatedAt)
+                    OUTPUT inserted.Id INTO @OutputTable;
+
+                SELECT Id FROM @OutputTable; ", connection);
                 command.Parameters.AddWithValue("@Username", user.Username);
                 command.Parameters.AddWithValue("@Email", user.Email);
                 command.Parameters.AddWithValue("@Password", user.Password);
